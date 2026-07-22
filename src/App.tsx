@@ -429,7 +429,6 @@ useEffect(() => {
     })
   );
 
-  return (
     if (showIntro) {
   return (
     <div
@@ -452,7 +451,7 @@ useEffect(() => {
     </div>
   );
 }
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0B0F17] flex text-slate-900 dark:text-slate-100 font-sans antialiased overflow-x-hidden selection:bg-blue-500/20 selection:text-blue-900 dark:selection:text-blue-100 transition-colors duration-250">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0B0F17] flex text-slate-900 dark:text-slate-100 font-sans antialiased overflow-x-hidden ">
       
       {/* 1. DESKTOP COLLAPSIBLE NAVIGATION SIDEBAR (Hidden on Mobile < 1024px) */}
       <aside

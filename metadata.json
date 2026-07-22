@@ -1,0 +1,6 @@
+{
+  "name": "Nurovia AI",
+  "description": "An intelligent, patient, and highly accurate AI tutor that helps students learn faster and understand concepts deeply. Features interactive doubt solving, PDF/text note summarizers, quiz and flashcard builders, personalized timetables, and formula sheet generators.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

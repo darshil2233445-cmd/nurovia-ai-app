@@ -37,9 +37,13 @@ import RevisionPlanner from "./components/RevisionPlanner";
 import HistoryViewer from "./components/HistoryViewer";
 import SettingsView from "./components/SettingsView";
 import AnimatedRocket from "./components/AnimatedRocket";
+import InstallPwaPrompt from "./components/InstallPwaPrompt";
+
 import AuthWelcome from "./components/AuthWelcome";
 import UserProfileModal from "./components/UserProfileModal";
+
 type NavigationTab = "dashboard" | "chat" | "notes" | "cards" | "quiz" | "formulas" | "planner" | "history" | "settings";
+
 const NAVIGATION_ITEMS = [
   { id: "dashboard" as NavigationTab, label: "Dashboard", icon: LayoutDashboard },
   { id: "chat" as NavigationTab, label: "AI Doubt Solver", customIcon: true },
@@ -53,15 +57,6 @@ const NAVIGATION_ITEMS = [
 ];
 
 export default function App() {
-  const [showIntro, setShowIntro] = useState(true);
-
-useEffect(() => {
-  const timer = setTimeout(() => {
-    setShowIntro(false);
-  }, 5000); // 5 seconds
-
-  return () => clearTimeout(timer);
-}, []);
   // Theme state
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     const saved = localStorage.getItem("nurovia_theme");
@@ -429,29 +424,8 @@ useEffect(() => {
     })
   );
 
-    if (showIntro) {
   return (
-    <div
-      style={{
-        width: "100vw",
-        height: "100vh",
-        background: "#000",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <video
-        src="/intro.mp4"
-        autoPlay
-        muted
-        playsInline
-        style={{ width: "100%", height: "100%", objectFit: "cover" }}
-      />
-    </div>
-  );
-}
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0B0F17] flex text-slate-900 dark:text-slate-100 font-sans antialiased overflow-x-hidden ">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0B0F17] flex text-slate-900 dark:text-slate-100 font-sans antialiased overflow-x-hidden selection:bg-blue-500/20 selection:text-blue-900 dark:selection:text-blue-100 transition-colors duration-250">
       
       {/* 1. DESKTOP COLLAPSIBLE NAVIGATION SIDEBAR (Hidden on Mobile < 1024px) */}
       <aside
@@ -754,6 +728,9 @@ useEffect(() => {
                   </motion.span>
                 </AnimatePresence>
               </button>
+
+              {/* PWA Install App Button */}
+              <InstallPwaPrompt variant="button" />
             </div>
 
           </div>
@@ -906,6 +883,9 @@ useEffect(() => {
           onDeleteAccount={handleDeleteAccount}
         />
       )}
+
+      {/* Floating PWA Install Banner */}
+      <InstallPwaPrompt variant="banner" />
     </div>
   );
 }

@@ -2,13 +2,74 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Nurovia AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>NUVORIA AI</title>
+    
+    <!-- PWA Primary Meta Tags -->
+    <meta name="theme-color" content="#2563EB" />
+    <meta name="description" content="NUVORIA AI - Intelligent AI Tutor & Study Suite" />
+    
+    <!-- PWA Manifest & App Icons -->
+    <link rel="manifest" href="/manifest.json" id="manifest-link" />
     <link rel="icon" type="image/png" href="/logo.png" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    
+    <!-- iOS Web App Capable -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="NUVORIA AI" />
+
+    <!-- Early PWA Event Capture Script -->
+    <script>
+      // Capture beforeinstallprompt immediately on page boot before React mounts
+      window.deferredPwaPrompt = null;
+      window.isPwaInstallAvailable = false;
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        window.deferredPwaPrompt = e;
+        window.isPwaInstallAvailable = true;
+        console.log("beforeinstallprompt fired");
+        console.log("Install available");
+        window.dispatchEvent(new CustomEvent('pwa-prompt-ready'));
+      });
+
+      window.addEventListener('appinstalled', () => {
+        console.log("Already installed");
+        window.deferredPwaPrompt = null;
+        window.isPwaInstallAvailable = false;
+        window.dispatchEvent(new CustomEvent('pwa-app-installed'));
+      });
+
+      // Verify manifest loading
+      fetch('/manifest.json')
+        .then((res) => {
+          if (res.ok) console.log("Manifest loaded");
+          else console.log("Install blocked because manifest.json failed to load with status " + res.status);
+        })
+        .catch((err) => console.log("Install blocked because manifest.json load failed:", err));
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js', { scope: '/' })
+            .then((reg) => {
+              console.log("Service Worker registered");
+            })
+            .catch((err) => {
+              console.log("Install blocked because Service Worker registration failed:", err);
+            });
+        });
+      } else {
+        console.log("Install blocked because browser does not support Service Workers");
+      }
+    </script>
+    
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

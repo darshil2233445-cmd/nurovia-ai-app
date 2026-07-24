@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { 
   Sparkles, 
@@ -11,17 +11,17 @@ import {
   Flame, 
   Target, 
   CheckCircle2, 
-  BrainCircuit,
   TrendingUp,
   Zap,
-  Clock
+  Clock,
+  Shield,
+  Activity
 } from "lucide-react";
 import { TargetLevel, DifficultyLevel, StudySuite } from "../types";
 import AnimatedRocket from "./AnimatedRocket";
+import { getRealAnalytics, RealAnalytics } from "../utils/guestStorage";
 
 interface DashboardViewProps {
-  userEmail: string | null;
-  userName?: string;
   targetLevel: TargetLevel;
   difficulty: DifficultyLevel;
   currentSuite: StudySuite | null;
@@ -30,25 +30,26 @@ interface DashboardViewProps {
 }
 
 export default function DashboardView({
-  userEmail,
-  userName,
   targetLevel,
   difficulty,
   currentSuite,
   onNavigate,
-  onClearSuite,
 }: DashboardViewProps) {
+  const [analytics, setAnalytics] = useState<RealAnalytics>(getRealAnalytics());
+
+  useEffect(() => {
+    setAnalytics(getRealAnalytics());
+  }, []);
+
   // Weekly goal stats
-  const goalHours = 20;
-  const completedHours = 14;
-  const percentage = Math.round((completedHours / goalHours) * 100);
+  const goalHours = analytics.goalHours;
+  const completedHours = analytics.completedHours;
+  const percentage = Math.min(100, Math.round((completedHours / goalHours) * 100));
 
   // SVG Circular progress math
   const radius = 38;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
-
-  const displayName = userName || (userEmail ? userEmail.split("@")[0] : "Scholar");
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -89,13 +90,13 @@ export default function DashboardView({
           <div className="space-y-3 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold text-blue-100">
               <Sparkles size={14} className="text-cyan-300 animate-pulse" />
-              <span>Nurovia AI 2026 Engine</span>
+              <span>Local Offline Engine • ID: {analytics.guestId}</span>
             </div>
             <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight font-display text-white">
-              Welcome back, {displayName} 👋
+              Welcome back, Scholar 👋
             </h1>
             <p className="text-blue-100 text-xs sm:text-base leading-relaxed font-normal opacity-90">
-              Your personalized AI study workspace is synced and operating at peak performance for{" "}
+              Your local AI study platform is ready. Operating in direct mode for{" "}
               <span className="font-semibold text-white underline decoration-cyan-300 decoration-2 underline-offset-4">
                 {targetLevel} ({difficulty})
               </span>.
@@ -155,19 +156,21 @@ export default function DashboardView({
               </svg>
               <div className="absolute flex flex-col items-center justify-center text-center">
                 <span className="text-base sm:text-lg font-black font-display text-white leading-none">{percentage}%</span>
-                <span className="text-[9px] uppercase tracking-wider text-blue-200 font-semibold mt-0.5">Done</span>
+                <span className="text-[9px] uppercase tracking-wider text-blue-200 font-semibold mt-0.5">Goal</span>
               </div>
             </div>
 
             <div className="space-y-1">
               <div className="flex items-center gap-1.5 text-xs font-bold text-cyan-300 font-display uppercase tracking-wider">
                 <Target size={14} />
-                <span>Weekly Goal</span>
+                <span>Weekly Progress</span>
               </div>
               <p className="text-lg sm:text-xl font-bold font-display text-white">
                 {completedHours} / {goalHours} hrs
               </p>
-              <p className="text-xs text-blue-200">6 hours remaining this week</p>
+              <p className="text-xs text-blue-200">
+                {completedHours >= goalHours ? "Goal reached!" : `${Math.round((goalHours - completedHours) * 10) / 10} hrs remaining`}
+              </p>
             </div>
           </div>
         </div>
@@ -188,7 +191,7 @@ export default function DashboardView({
                 <span className="text-[10px] font-bold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-950/80 px-2 py-0.5 rounded-md uppercase tracking-wider">
                   Active Study Deck
                 </span>
-                <span className="text-xs text-slate-400">• Generated</span>
+                <span className="text-xs text-slate-400">• Saved locally</span>
               </div>
               <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 font-display mt-0.5">
                 {currentSuite.topic || "Current Topic Deck"}
@@ -231,12 +234,12 @@ export default function DashboardView({
             </div>
           </div>
           <div className="mt-4 flex items-baseline justify-between">
-            <span className="text-2xl font-black text-slate-900 dark:text-slate-100 font-display">148</span>
+            <span className="text-2xl font-black text-slate-900 dark:text-slate-100 font-display">{analytics.problemsSolved}</span>
             <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full">
-              <TrendingUp size={12} /> +12%
+              <TrendingUp size={12} /> Real Data
             </span>
           </div>
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">AI verified answers</p>
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Quiz & Doubt questions</p>
         </div>
 
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs hover:shadow-md transition-all duration-300 relative overflow-hidden group">
@@ -247,12 +250,12 @@ export default function DashboardView({
             </div>
           </div>
           <div className="mt-4 flex items-baseline justify-between">
-            <span className="text-2xl font-black text-slate-900 dark:text-slate-100 font-display">24</span>
+            <span className="text-2xl font-black text-slate-900 dark:text-slate-100 font-display">{analytics.notesMastered}</span>
             <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full">
-              <CheckCircle2 size={12} /> Complete
+              <CheckCircle2 size={12} /> Simplified
             </span>
           </div>
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Simplified & summarized</p>
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Notes & summaries</p>
         </div>
 
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs hover:shadow-md transition-all duration-300 relative overflow-hidden group">
@@ -263,12 +266,12 @@ export default function DashboardView({
             </div>
           </div>
           <div className="mt-4 flex items-baseline justify-between">
-            <span className="text-2xl font-black text-slate-900 dark:text-slate-100 font-display">92%</span>
+            <span className="text-2xl font-black text-slate-900 dark:text-slate-100 font-display">{analytics.quizAccuracy}%</span>
             <span className="text-xs font-bold text-cyan-600 dark:text-cyan-400 flex items-center gap-0.5 bg-cyan-50 dark:bg-cyan-950/60 px-2 py-0.5 rounded-full">
-              <Zap size={12} /> Top 5%
+              <Zap size={12} /> Level {analytics.level}
             </span>
           </div>
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Avg score across tests</p>
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Calculated from quiz scores</p>
         </div>
 
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs hover:shadow-md transition-all duration-300 relative overflow-hidden group">
@@ -279,14 +282,59 @@ export default function DashboardView({
             </div>
           </div>
           <div className="mt-4 flex items-baseline justify-between">
-            <span className="text-2xl font-black text-slate-900 dark:text-slate-100 font-display">7 Days</span>
+            <span className="text-2xl font-black text-slate-900 dark:text-slate-100 font-display">{analytics.streakDays} {analytics.streakDays === 1 ? 'Day' : 'Days'}</span>
             <span className="text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-0.5 bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded-full">
               🔥 Active
             </span>
           </div>
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Keep the momentum going!</p>
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Device activity tracking</p>
         </div>
 
+      </motion.div>
+
+      {/* Local XP & Achievements Section */}
+      <motion.div variants={itemVariants} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-md space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+          <div>
+            <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider font-display flex items-center gap-1.5">
+              <Zap size={14} /> Level {analytics.level} Scholar
+            </span>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 font-display">
+              {analytics.totalXp} Total Experience Points (XP)
+            </h3>
+          </div>
+          <div className="text-xs text-slate-500 dark:text-slate-400">
+            Earn XP by asking questions, solving practice quizzes, and simplifying notes!
+          </div>
+        </div>
+
+        {/* Achievements Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-1">
+          {analytics.achievements.map((ach) => (
+            <div
+              key={ach.id}
+              className={`p-3.5 rounded-2xl border transition-all ${
+                ach.unlocked
+                  ? "bg-amber-50/60 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800/80"
+                  : "bg-slate-50/50 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-800 opacity-60"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-bold font-display text-slate-900 dark:text-slate-100">{ach.title}</span>
+                {ach.unlocked ? (
+                  <span className="text-[10px] font-extrabold text-amber-700 dark:text-amber-300 bg-amber-200/60 dark:bg-amber-900/80 px-2 py-0.5 rounded-full">
+                    Unlocked
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold text-slate-400">{ach.progress}%</span>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
+                {ach.description}
+              </p>
+            </div>
+          ))}
+        </div>
       </motion.div>
 
       {/* Feature Launchers Bento Section */}

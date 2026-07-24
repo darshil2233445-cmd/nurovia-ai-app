@@ -1,11 +1,8 @@
-import { HistoryItem, HistoryItemType } from "./types";
+import { HistoryItem } from "./types";
+import { recordGuestActivity } from "./utils/guestStorage";
 
 export const getHistoryKey = (): string => {
-  const email = localStorage.getItem("nurovia_user_email");
-  if (email) {
-    return `studyai_global_history_${email}`;
-  }
-  return "studyai_global_history_guest";
+  return "studyai_global_history_local";
 };
 
 export const getHistory = (): HistoryItem[] => {
@@ -22,11 +19,14 @@ export const saveHistoryItem = (item: Omit<HistoryItem, "id" | "timestamp">) => 
   const history = getHistory();
   const newItem: HistoryItem = {
     ...item,
-    id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+    id: Date.now().toString() + Math.random().toString(36).substring(2, 5),
     timestamp: new Date().toISOString()
   };
   const key = getHistoryKey();
   localStorage.setItem(key, JSON.stringify([newItem, ...history]));
+
+  // Log activity
+  recordGuestActivity(item.type, { title: item.title });
 };
 
 export const deleteHistoryItem = (id: string) => {

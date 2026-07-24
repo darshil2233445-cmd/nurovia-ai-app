@@ -33,6 +33,8 @@ import { ChatMessage, ChatSession, StudyMode } from "../types";
 import MarkdownRenderer from "./MarkdownRenderer";
 import AnimatedRocket from "./AnimatedRocket";
 
+import { recordGuestActivity } from "../utils/guestStorage";
+
 export type AIPersonality = "architect" | "companion" | "straight_edge" | "spark" | "velocity" | "devils_advocate";
 
 interface TutorChatProps {
@@ -43,10 +45,6 @@ interface TutorChatProps {
   setDifficulty: (diff: "Beginner" | "Advanced") => void;
   activeMode: StudyMode;
   setActiveMode: (mode: StudyMode) => void;
-  userEmail: string | null;
-  onSignIn: (email: string) => void;
-  onSignOut: () => void;
-  authToken: string | null;
 }
 
 const AI_PERSONALITIES = [
@@ -123,10 +121,6 @@ export default function TutorChat({
   setDifficulty,
   activeMode,
   setActiveMode,
-  userEmail,
-  onSignIn,
-  onSignOut,
-  authToken
 }: TutorChatProps) {
   // All sessions saved in local storage
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -162,7 +156,7 @@ export default function TutorChat({
 
   // Load sessions from localStorage
   useEffect(() => {
-    const storageKey = userEmail ? `nurovia_chat_sessions_${userEmail}` : "nurovia_guest_chat_sessions";
+    const storageKey = "nurovia_local_chat_sessions";
     const saved = localStorage.getItem(storageKey);
     if (saved) {
       try {
@@ -175,7 +169,7 @@ export default function TutorChat({
     } else {
       setSessions([]);
     }
-  }, [userEmail]);
+  }, []);
 
   // Determine active session & messages
   const activeSession = sessions.find(s => s.id === currentSessionId);
@@ -184,8 +178,7 @@ export default function TutorChat({
   // Helper to save sessions
   const saveSessions = (updated: ChatSession[]) => {
     setSessions(updated);
-    const storageKey = userEmail ? `nurovia_chat_sessions_${userEmail}` : "nurovia_guest_chat_sessions";
-    localStorage.setItem(storageKey, JSON.stringify(updated));
+    localStorage.setItem("nurovia_local_chat_sessions", JSON.stringify(updated));
   };
 
   // Scroll to bottom
@@ -296,8 +289,10 @@ export default function TutorChat({
         title: autoTitle,
         messages: [userMsg],
         createdAt: new Date().toISOString(),
-        userId: userEmail
+        userId: "guest"
       };
+
+      recordGuestActivity("chat", { title: autoTitle });
 
       updatedSessions = [sessionToUpdate, ...sessions];
       setCurrentSessionId(newSessionId);

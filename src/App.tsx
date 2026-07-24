@@ -13,18 +13,11 @@ import {
   Sparkles,
   ChevronLeft,
   ChevronRight,
-  ShieldAlert,
-  LogIn,
-  LogOut,
-  User,
-  Zap,
-  Flame,
-  Check,
-  Search,
   Menu,
   X,
   Sun,
-  Moon
+  Moon,
+  HardDrive
 } from "lucide-react";
 import { TargetLevel, DifficultyLevel, StudyMode, StudySuite } from "./types";
 import DashboardView from "./components/DashboardView";
@@ -38,9 +31,6 @@ import HistoryViewer from "./components/HistoryViewer";
 import SettingsView from "./components/SettingsView";
 import AnimatedRocket from "./components/AnimatedRocket";
 import InstallPwaPrompt from "./components/InstallPwaPrompt";
-
-import AuthWelcome from "./components/AuthWelcome";
-import UserProfileModal from "./components/UserProfileModal";
 
 type NavigationTab = "dashboard" | "chat" | "notes" | "cards" | "quiz" | "formulas" | "planner" | "history" | "settings";
 
@@ -77,16 +67,6 @@ export default function App() {
 
   // Active study suite generated from Note Simplifier
   const [currentSuite, setCurrentSuite] = useState<StudySuite | null>(null);
-
-  // Authentication & Cloud Sync States
-  const [authToken, setAuthToken] = useState<string | null>(() => localStorage.getItem("nurovia_auth_token"));
-  const [userEmail, setUserEmail] = useState<string | null>(() => localStorage.getItem("nurovia_user_email"));
-  const [userProfile, setUserProfile] = useState<any | null>(() => {
-    const saved = localStorage.getItem("nurovia_user_profile");
-    return saved ? JSON.parse(saved) : null;
-  });
-  const [isGuest, setIsGuest] = useState<boolean>(() => localStorage.getItem("nurovia_is_guest") === "true");
-  const [showProfileModal, setShowProfileModal] = useState(false);
 
   // Liquid Blue Wave animation trigger on tab switch
   const [waveKey, setWaveKey] = useState(0);
@@ -130,213 +110,19 @@ export default function App() {
     }
   }, []);
 
-  // Verify Auth Session token on mount or token change
-  useEffect(() => {
-    if (authToken) {
-      fetch("/api/auth/profile", {
-        headers: { "Authorization": `Bearer ${authToken}` }
-      })
-        .then((res) => {
-          if (!res.ok) throw new Error("Invalid or expired cloud session");
-          return res.json();
-        })
-        .then((profile) => {
-          setUserProfile(profile);
-          setUserEmail(profile.email);
-          localStorage.setItem("nurovia_user_profile", JSON.stringify(profile));
-          localStorage.setItem("nurovia_user_email", profile.email);
-          setIsGuest(false);
-          localStorage.removeItem("nurovia_is_guest");
-          pullUserDataFromServer(authToken, profile.email);
-        })
-        .catch((err) => {
-          console.error("Session validation failed. Reverting to login screen.", err);
-          handleForceSignOut();
-        });
-    }
-  }, [authToken]);
-
-  // Sync / Auto-Save history items to server when active tab switches
-  useEffect(() => {
-    if (!authToken || !userEmail) return;
-    
-    const syncLocalHistoryToCloud = async () => {
-      const storageKey = `studyai_global_history_${userEmail}`;
-      const localHistory = localStorage.getItem(storageKey);
-      if (localHistory) {
-        try {
-          await fetch("/api/sync/history", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${authToken}`
-            },
-            body: JSON.stringify({ history: JSON.parse(localHistory) })
-          });
-        } catch (e) {
-          console.error("Failed to sync history to cloud", e);
-        }
-      }
-    };
-
-    syncLocalHistoryToCloud();
-  }, [authToken, userEmail, activeTab]);
-
-  const handleForceSignOut = () => {
-    setAuthToken(null);
-    setUserEmail(null);
-    setUserProfile(null);
-    setIsGuest(false);
-    localStorage.removeItem("nurovia_auth_token");
-    localStorage.removeItem("nurovia_user_email");
-    localStorage.removeItem("nurovia_user_profile");
-    localStorage.removeItem("nurovia_is_guest");
-  };
-
-  const pullUserDataFromServer = async (token: string, email: string) => {
-    try {
-      const settingsRes = await fetch("/api/sync/settings", {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (settingsRes.ok) {
-        const data = await settingsRes.json();
-        if (data) {
-          if (data.targetLevel) setTargetLevel(data.targetLevel);
-          if (data.difficulty) setDifficulty(data.difficulty);
-          if (data.activeMode) setActiveMode(data.activeMode);
-        }
-      }
-
-      const chatsRes = await fetch("/api/sync/chats", {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (chatsRes.ok) {
-        const chats = await chatsRes.json();
-        if (chats && chats.length > 0) {
-          localStorage.setItem(`nurovia_chat_sessions_${email}`, JSON.stringify(chats));
-        }
-      }
-
-      const histRes = await fetch("/api/sync/history", {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (histRes.ok) {
-        const history = await histRes.json();
-        if (history && history.length > 0) {
-          localStorage.setItem(`studyai_global_history_${email}`, JSON.stringify(history));
-        }
-      }
-    } catch (e) {
-      console.error("Failed to restore cloud backups", e);
-    }
-  };
-
-  const handleAuthSuccess = async (token: string, profile: any) => {
-    setAuthToken(token);
-    setUserEmail(profile.email);
-    setUserProfile(profile);
-    setIsGuest(false);
-    localStorage.setItem("nurovia_auth_token", token);
-    localStorage.setItem("nurovia_user_email", profile.email);
-    localStorage.setItem("nurovia_user_profile", JSON.stringify(profile));
-    localStorage.removeItem("nurovia_is_guest");
-
-    await pullUserDataFromServer(token, profile.email);
-  };
-
-  const handleContinueAsGuest = () => {
-    setIsGuest(true);
-    localStorage.setItem("nurovia_is_guest", "true");
-  };
-
-  const handleUpdateProfile = async (updated: any) => {
-    if (!authToken) return false;
-    try {
-      const response = await fetch("/api/auth/update-profile", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${authToken}`
-        },
-        body: JSON.stringify(updated)
-      });
-      if (!response.ok) return false;
-      const data = await response.json();
-      if (data.success) {
-        setUserProfile(data.user);
-        localStorage.setItem("nurovia_user_profile", JSON.stringify(data.user));
-        return true;
-      }
-      return false;
-    } catch (e) {
-      console.error(e);
-      return false;
-    }
-  };
-
-  const handleDeleteAccount = async () => {
-    if (!authToken) return false;
-    try {
-      const response = await fetch("/api/auth/delete-account", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${authToken}`
-        }
-      });
-      if (response.ok) {
-        handleForceSignOut();
-        localStorage.removeItem("nurovia_chat_sessions");
-        localStorage.removeItem("studyai_global_history");
-        localStorage.removeItem("studyai_active_suite");
-        setCurrentSuite(null);
-        return true;
-      }
-      return false;
-    } catch (e) {
-      console.error(e);
-      return false;
-    }
-  };
-
-  const handleTargetLevelChange = async (lvl: TargetLevel) => {
+  const handleTargetLevelChange = (lvl: TargetLevel) => {
     setTargetLevel(lvl);
     localStorage.setItem("studyai_target_level", lvl);
-    if (authToken) {
-      await syncSettings(lvl, difficulty, activeMode);
-    }
   };
 
-  const handleDifficultyChange = async (diff: DifficultyLevel) => {
+  const handleDifficultyChange = (diff: DifficultyLevel) => {
     setDifficulty(diff);
     localStorage.setItem("studyai_difficulty", diff);
-    if (authToken) {
-      await syncSettings(targetLevel, diff, activeMode);
-    }
   };
 
-  const handleModeChange = async (mode: StudyMode) => {
+  const handleModeChange = (mode: StudyMode) => {
     setActiveMode(mode);
     localStorage.setItem("studyai_mode", mode);
-    if (authToken) {
-      await syncSettings(targetLevel, difficulty, mode);
-    }
-  };
-
-  const syncSettings = async (lvl: TargetLevel, diff: DifficultyLevel, mode: StudyMode) => {
-    try {
-      await fetch("/api/sync/settings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${authToken}`
-        },
-        body: JSON.stringify({
-          settings: { targetLevel: lvl, difficulty: diff, activeMode: mode }
-        })
-      });
-    } catch (e) {
-      console.error("Failed to sync settings", e);
-    }
   };
 
   const handleTabChange = (tab: NavigationTab) => {
@@ -367,15 +153,6 @@ export default function App() {
   };
 
   const fullLevel = `${targetLevel} (${difficulty})` as any;
-
-  if (!authToken && !isGuest) {
-    return (
-      <AuthWelcome
-        onAuthSuccess={handleAuthSuccess}
-        onContinueAsGuest={handleContinueAsGuest}
-      />
-    );
-  }
 
   const renderNavItems = (isMobile = false) => (
     NAVIGATION_ITEMS.map((item) => {
@@ -427,7 +204,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0B0F17] flex text-slate-900 dark:text-slate-100 font-sans antialiased overflow-x-hidden selection:bg-blue-500/20 selection:text-blue-900 dark:selection:text-blue-100 transition-colors duration-250">
       
-      {/* 1. DESKTOP COLLAPSIBLE NAVIGATION SIDEBAR (Hidden on Mobile < 1024px) */}
+      {/* 1. DESKTOP COLLAPSIBLE NAVIGATION SIDEBAR */}
       <aside
         className={`hidden lg:flex bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl border-r border-slate-200/80 dark:border-slate-800 flex-col justify-between shrink-0 transition-all duration-300 ease-in-out z-40 sticky top-0 h-screen shadow-2xs ${
           isSidebarCollapsed ? "w-[72px]" : "w-[260px]"
@@ -450,7 +227,7 @@ export default function App() {
                     Nurovia AI
                   </span>
                   <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider font-display">
-                    2026 SaaS Edition
+                    Local Platform
                   </span>
                 </div>
               )}
@@ -471,51 +248,21 @@ export default function App() {
             {renderNavItems(false)}
           </div>
 
-          {/* User Account & Theme Toggle Footer */}
+          {/* Local Device Storage Indicator */}
           <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 space-y-2">
-            {authToken && userProfile ? (
-              <div
-                onClick={() => setShowProfileModal(true)}
-                className={`flex items-center gap-2.5 p-2 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 shadow-2xs cursor-pointer transition-all ${
-                  isSidebarCollapsed ? "justify-center" : ""
-                }`}
-              >
-                <img
-                  src={userProfile.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userProfile.name)}`}
-                  alt={userProfile.name}
-                  referrerPolicy="no-referrer"
-                  className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0"
-                />
-                {!isSidebarCollapsed && (
-                  <div className="overflow-hidden text-left flex-1">
-                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate leading-tight font-display">{userProfile.name}</p>
-                    <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-extrabold uppercase tracking-wider flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Cloud Active
-                    </span>
-                  </div>
-                )}
+            <div className={`flex items-center ${isSidebarCollapsed ? "justify-center" : "gap-2.5"} p-2 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs`}>
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <HardDrive size={18} />
               </div>
-            ) : (
-              <div className={`flex items-center ${isSidebarCollapsed ? "justify-center" : "justify-between"} gap-2`}>
-                {!isSidebarCollapsed && (
-                  <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 px-2.5 py-1.5 rounded-xl border border-amber-200 dark:border-amber-800 text-[10px] font-bold font-display">
-                    <ShieldAlert size={12} />
-                    <span>Guest Mode</span>
-                  </div>
-                )}
-                <button
-                  onClick={() => {
-                    setIsGuest(false);
-                    localStorage.removeItem("nurovia_is_guest");
-                  }}
-                  title="Sign In"
-                  className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-xs transition-all cursor-pointer flex items-center gap-1 min-h-[40px]"
-                >
-                  <LogIn size={14} />
-                  {!isSidebarCollapsed && <span>Sign In</span>}
-                </button>
-              </div>
-            )}
+              {!isSidebarCollapsed && (
+                <div className="overflow-hidden text-left flex-1">
+                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate font-display">Local Guest Mode</p>
+                  <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-extrabold uppercase tracking-wider flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Device Storage
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
         </div>
@@ -558,7 +305,7 @@ export default function App() {
                         Nurovia AI
                       </span>
                       <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider font-display">
-                        Mobile Workspace
+                        Local Workspace
                       </span>
                     </div>
                   </div>
@@ -588,39 +335,6 @@ export default function App() {
                     </span>
                     <span className="text-[10px] uppercase font-mono bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-md">Toggle</span>
                   </button>
-
-                  {authToken && userProfile ? (
-                    <div
-                      onClick={() => {
-                        setIsMobileDrawerOpen(false);
-                        setShowProfileModal(true);
-                      }}
-                      className="flex items-center gap-3 p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs cursor-pointer min-h-[48px]"
-                    >
-                      <img
-                        src={userProfile.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userProfile.name)}`}
-                        alt={userProfile.name}
-                        referrerPolicy="no-referrer"
-                        className="w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0"
-                      />
-                      <div className="overflow-hidden text-left flex-1">
-                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate font-display">{userProfile.name}</p>
-                        <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate">{userProfile.email}</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        setIsMobileDrawerOpen(false);
-                        setIsGuest(false);
-                        localStorage.removeItem("nurovia_is_guest");
-                      }}
-                      className="w-full py-3 bg-blue-600 text-white rounded-2xl font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 font-display min-h-[48px]"
-                    >
-                      <LogIn size={16} />
-                      <span>Sign In / Create Account</span>
-                    </button>
-                  )}
                 </div>
               </div>
             </motion.aside>
@@ -747,7 +461,7 @@ export default function App() {
           />
         </AnimatePresence>
 
-        {/* Main Body Canvas with Snappy GPU Page Transitions (280ms duration) */}
+        {/* Main Body Canvas */}
         <main className="flex-1 p-3 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
           <AnimatePresence mode="wait">
             <motion.div
@@ -760,8 +474,6 @@ export default function App() {
             >
               {activeTab === "dashboard" && (
                 <DashboardView
-                  userEmail={userEmail}
-                  userName={userProfile?.name}
                   targetLevel={targetLevel}
                   difficulty={difficulty}
                   currentSuite={currentSuite}
@@ -779,10 +491,6 @@ export default function App() {
                   setDifficulty={handleDifficultyChange}
                   activeMode={activeMode}
                   setActiveMode={handleModeChange}
-                  userEmail={userEmail}
-                  onSignIn={(email) => handleAuthSuccess(authToken || "", { email, name: email.split("@")[0] })}
-                  onSignOut={handleForceSignOut}
-                  authToken={authToken}
                 />
               )}
 
@@ -849,9 +557,6 @@ export default function App() {
                   setDifficulty={handleDifficultyChange}
                   activeMode={activeMode}
                   setActiveMode={handleModeChange}
-                  userEmail={userEmail}
-                  userName={userProfile?.name}
-                  onSignOut={handleForceSignOut}
                   onClearData={handleClearLocalData}
                 />
               )}
@@ -862,7 +567,7 @@ export default function App() {
         {/* Footer */}
         <footer className="bg-white dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800 py-6 mt-auto text-center text-xs text-slate-400 dark:text-slate-500 font-medium font-display transition-colors">
           <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p>© 2026 Nurovia AI. All lesson materials and interactive plan suites are generated server-side.</p>
+            <p>© 2026 Nurovia AI. All lesson materials and interactive plan suites are generated locally.</p>
             <div className="flex items-center gap-1.5">
               <span>Powered by</span>
               <span className="font-extrabold text-blue-600 dark:text-blue-400 tracking-tight flex items-center gap-1">
@@ -873,16 +578,6 @@ export default function App() {
         </footer>
 
       </div>
-
-      {showProfileModal && userProfile && (
-        <UserProfileModal
-          user={userProfile}
-          onClose={() => setShowProfileModal(false)}
-          onUpdateProfile={handleUpdateProfile}
-          onSignOut={handleForceSignOut}
-          onDeleteAccount={handleDeleteAccount}
-        />
-      )}
 
       {/* Floating PWA Install Banner */}
       <InstallPwaPrompt variant="banner" />

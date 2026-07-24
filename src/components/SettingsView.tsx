@@ -4,19 +4,16 @@ import {
   Settings,
   GraduationCap,
   Shield,
-  User,
   Trash2,
-  LogOut,
-  RefreshCw,
   Check,
-  Sparkles,
-  Cloud,
-  Moon,
-  Sun,
   Database,
-  Lock
+  HardDrive,
+  Cpu,
+  RefreshCw,
+  Sparkles
 } from "lucide-react";
 import { TargetLevel, DifficultyLevel, StudyMode } from "../types";
+import { getOrCreateGuestId } from "../utils/guestStorage";
 
 interface SettingsViewProps {
   targetLevel: TargetLevel;
@@ -25,9 +22,6 @@ interface SettingsViewProps {
   setDifficulty: (diff: DifficultyLevel) => void;
   activeMode: StudyMode;
   setActiveMode: (mode: StudyMode) => void;
-  userEmail: string | null;
-  userName?: string;
-  onSignOut: () => void;
   onClearData: () => void;
 }
 
@@ -38,12 +32,10 @@ export default function SettingsView({
   setDifficulty,
   activeMode,
   setActiveMode,
-  userEmail,
-  userName,
-  onSignOut,
   onClearData,
 }: SettingsViewProps) {
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const guestId = getOrCreateGuestId();
 
   const handleSaveSettings = () => {
     setSavedSuccess(true);
@@ -62,10 +54,10 @@ export default function SettingsView({
       <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-md flex items-center justify-between">
         <div className="space-y-1">
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 font-display flex items-center gap-2">
-            <Settings className="text-blue-600 dark:text-blue-400" size={24} /> Workspace Preferences & Controls
+            <Settings className="text-blue-600 dark:text-blue-400" size={24} /> Preferences & Local Settings
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-            Configure academic difficulty levels, account sync preferences, and memory cache.
+            Configure academic difficulty levels, active local device profile, and memory maintenance.
           </p>
         </div>
 
@@ -141,41 +133,30 @@ export default function SettingsView({
         </div>
       </div>
 
-      {/* Cloud Account Sync Section */}
+      {/* Local Device Identity Section */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-md space-y-6">
         <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 font-display flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-          <Cloud size={18} className="text-emerald-600 dark:text-emerald-400" /> Cloud Sync & User Profile
+          <HardDrive size={18} className="text-emerald-600 dark:text-emerald-400" /> Device Storage & Identity
         </h3>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-bold text-sm shrink-0 font-display">
-              <User size={20} />
+            <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shrink-0 font-display shadow-md shadow-emerald-500/20">
+              <Cpu size={20} />
             </div>
             <div>
               <p className="text-sm font-bold text-slate-900 dark:text-slate-100 font-display">
-                {userEmail ? (userName || userEmail) : "Guest Session"}
+                Device Guest ID: <span className="font-mono text-emerald-600 dark:text-emerald-400">{guestId}</span>
               </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {userEmail ? `Signed in as ${userEmail}` : "Local offline cache enabled"}
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Local-first mode active. All chats, notes, flashcards, and quizzes persist strictly on this device.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            {userEmail ? (
-              <button
-                onClick={onSignOut}
-                className="w-full sm:w-auto px-4 py-2.5 bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/80 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[44px]"
-              >
-                <LogOut size={16} /> Sign Out
-              </button>
-            ) : (
-              <span className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-3 py-1.5 rounded-xl border border-amber-200 dark:border-amber-800 font-bold font-display">
-                Guest Mode
-              </span>
-            )}
-          </div>
+          <span className="text-xs text-emerald-700 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-950/80 px-3 py-1.5 rounded-xl border border-emerald-300 dark:border-emerald-800 font-bold font-display shrink-0">
+            100% Private
+          </span>
         </div>
       </div>
 
